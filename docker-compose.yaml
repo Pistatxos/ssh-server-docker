@@ -1,0 +1,36 @@
+services:
+  devbox:
+    build:
+      context: .
+      # Valores tomados del .env (ver .env.example)
+      args:
+        USER_UID: ${USER_UID}
+        USER_GID: ${USER_GID}
+        USER_NAME: ${USER_NAME}
+        ADMIN_GID: ${ADMIN_GID}
+    container_name: ssh-devbox
+    restart: unless-stopped
+    ports:
+      # ssh -p 2222 ${USER_NAME}@<host>
+      - "2222:22"
+    volumes:
+      # home persistente (historial, .bashrc, venvs...)
+      - home-user:/home/${USER_NAME}
+      # persiste las host keys de sshd para que no cambien al recrear el contenedor
+      - etc-ssh:/etc/ssh
+      - ./authorized_keys:/home/${USER_NAME}/.ssh/authorized_keys:ro
+      # acceso al daemon Docker del host
+      - /var/run/docker.sock:/var/run/docker.sock
+      # carpeta de trabajo (misma ruta dentro y fuera, así las rutas de
+      # los bind mounts que se lancen desde dentro valen también en el host):
+      - ${WORKSPACE_PATH}:${WORKSPACE_PATH}
+      # claves git en modo read-only:
+      - ${SSH_KEYS_PATH}/gitlab:/home/${USER_NAME}/.ssh/gitlab:ro
+      - ${SSH_KEYS_PATH}/gitlab.pub:/home/${USER_NAME}/.ssh/gitlab.pub:ro
+      - ${SSH_KEYS_PATH}/github:/home/${USER_NAME}/.ssh/github:ro
+      - ${SSH_KEYS_PATH}/github.pub:/home/${USER_NAME}/.ssh/github.pub:ro
+
+
+volumes:
+  home-user:
+  etc-ssh:
